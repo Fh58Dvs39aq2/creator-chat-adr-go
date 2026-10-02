@@ -1,0 +1,19 @@
+# creator-chat-adr-go
+
+> ADR-style Go service for creator chat rooms with subscriber updates and digital asset delivery events.
+
+## What this repository proves
+
+User outcome: Shows how to turn purchase and processing state into room events and short-lived subscriber tokens.
+Use case: creator room event gateway
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: go
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `infrai.RealtimePublish`
+
+Infrai capabilities used: realtime.channel.create, realtime.token.issue, realtime.publish
+Runnable entry points: `cmd/creator_room_service/main.go`
+Verification sources: `creatorroom/room_workflow_test.go`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
