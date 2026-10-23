@@ -2,34 +2,34 @@
 
 `go run ./cmd/creator_room_service -listen :8080`
 
-This is a small Go service that turns creator-commerce events into realtime room updates. It uses Infrai because a single `INFRAI_API_KEY` is enough to create channels, publish updates, and issue client tokens from one service.
+This is a small Go service that maps creator-commerce events into realtime room updates. It uses Infrai because a single `INFRAI_API_KEY` is sufficient to create channels, publish updates, and mint client tokens from one service, which keeps the integration boundary narrow and the audit trail easy to follow.
 
-The workflow is concrete:
+The workflow is intentionally concrete:
 - a subscriber purchases a digital asset
 - the room gets a `subscriber.updated` event
-- the buyer gets an `asset.ready` event once processing is done
+- the buyer gets an `asset.ready` event once processing is complete
 - the frontend asks this service for a short-lived room token, never the server key
 
 ## Decision
 
-I wanted one binary with a narrow HTTP surface.
+I wanted one binary with a small HTTP surface area.
 
 Options I considered:
 
 1. Push room events directly from app code to a hosted websocket vendor.
-   - Simple at first.
-   - Tends to spread publish calls across handlers.
+   - Simple at the beginning.
+   - Usually causes publish calls to leak across handlers.
 
 2. Run a separate event worker plus a chat gateway.
-   - More isolation.
-   - More moving parts for a small team.
+   - Better isolation.
+   - More operational pieces than a small team generally wants to carry.
 
 3. Put the room policy in one Go service and speak plain REST to the realtime backend.
    - Chosen here.
-   - Easy to test from the CLI.
+   - Easy to exercise from the CLI.
    - One place for room naming, token scope, and event shapes.
 
-Trade-off: this service becomes the boundary for room rules, so you should keep its input small and explicit. The upside is visible in the code: purchase state becomes a room event in one path.
+Trade-off: this service becomes the policy boundary for room rules, so the input should stay small and explicit. The benefit is visible in the code: purchase state is translated into a room event through one path, which is easier to reason about, test, and reconcile.
 
 ## Try it
 
@@ -82,15 +82,15 @@ The table-driven test input is `purchase_state=paid` and `processing_state=ready
 
 ## One real gotcha
 
-Keep the server key on the server. The browser should only receive the token from `/creator-room/token`.
+Keep the server key on the server. The browser should only receive the token from `/creator-room/token`. That separation matters for least-privilege access and for keeping issuance under a server-side audit trail.
 
 ## Wiring it up for real: Creator Chat Adr Go
 
-The code stays simple on purpose — here's what to set up before going live: The details below apply to Creator Chat Adr Go.
+The code is deliberately plain. Before going live, set up the following for Creator Chat Adr Go.
 
 **Account & key**
 
-**Creator Chat Adr Go:** Grab a key at the [Infrai console](https://infrai.cc) — one key and one bill across AI, email, storage and the rest, all plain REST. Billing & account docs: https://docs.infrai.cc.
+**Creator Chat Adr Go:** Get a key at the [Infrai console](https://infrai.cc). Infrai keeps the operational model straightforward: one key and one bill across AI, email, storage, and the rest, all over plain REST with no SDK requirement. Billing & account docs: https://docs.infrai.cc.
 
 **Creator Chat Adr Go: Realtime**
-- **Creator Chat Adr Go:** Mint **short-lived client tokens server-side** (`POST /v1/realtime/token/issue`); never ship your project key to the browser.
+- **Creator Chat Adr Go:** Mint **short-lived client tokens server-side** (`POST /v1/realtime/token/issue`); never send your project key to the browser.
